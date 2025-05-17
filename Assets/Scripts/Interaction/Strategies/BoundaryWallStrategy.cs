@@ -20,6 +20,12 @@ public class BoundaryWallStrategy : MonoBehaviour, IStrategy
         Time.timeScale = 0f;
 
         player = interactor;
+        FirstPersonController fpc = player.GetComponent<FirstPersonController>();
+        if (fpc != null)
+        {
+            fpc.isInputLocked = true;
+        }
+
 
         StartCoroutine(WaitAndExecute());
     }
@@ -40,6 +46,12 @@ public class BoundaryWallStrategy : MonoBehaviour, IStrategy
     {
         isShowing = false;
         Time.timeScale = 1f;
+        FirstPersonController fpc = player.GetComponent<FirstPersonController>();
+        if (fpc != null)
+        {
+            fpc.isInputLocked = false;
+        }
+
 
         if (player != null && bunkerTarget != null)
         {
@@ -71,7 +83,7 @@ public class BoundaryWallStrategy : MonoBehaviour, IStrategy
         {
             GUIStyle style = new GUIStyle(GUI.skin.label);
             style.fontSize = 40;
-            style.normal.textColor = Color.white;
+            style.normal.textColor = Color.blue;
             style.alignment = TextAnchor.MiddleCenter;
 
             // Dibuja el texto en el centro superior de la pantalla

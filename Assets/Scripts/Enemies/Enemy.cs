@@ -30,6 +30,9 @@ public class Enemy : MonoBehaviour
 
     public Transform Player => player;
 
+    [Header("Control de linterna del jugador")]
+    public bool hasDisabledFlashlight = false;
+
     void Start()
     {
         ChangeState(new PatrolState());

@@ -23,7 +23,6 @@ public class KeyPickupStrategy : MonoBehaviour, IStrategy
         if (inventory != null && keyData != null)
         {
             inventory.AddKey(keyData);
-            Debug.Log("Llave añadida al inventario: " + keyData.name);
         }
         else
         {
