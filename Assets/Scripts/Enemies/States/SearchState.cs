@@ -1,11 +1,10 @@
 using UnityEngine;
 
-// Este estado simula que el enemigo busca al jugador después de perderlo de vista.
-
+// Estado en el que el enemigo busca al jugador durante unos segundos tras perderlo de vista
 public class SearchState : IEnemyState
 {
     private Enemy enemy;
-    private float searchTime = 5f; // Tiempo máximo buscando
+    private float searchTime = 5f;
     private float timer = 0f;
 
     public void Enter(Enemy enemy)
@@ -18,15 +17,13 @@ public class SearchState : IEnemyState
     {
         timer += Time.deltaTime;
 
-        // Aquí se podría poner una animación o una búsqueda aleatoria
-
-        // Si lo ve otra vez, lo persigue
+        // Si ve al jugador durante la búsqueda, vuelve a perseguirlo
         if (enemy.CanSeePlayer())
         {
             enemy.ChangeState(new ChaseState());
         }
 
-        // Si se acaba el tiempo de búsqueda, vuelve a patrullar
+        // Si se agota el tiempo, vuelve a patrullar
         if (timer >= searchTime)
         {
             enemy.ChangeState(new PatrolState());

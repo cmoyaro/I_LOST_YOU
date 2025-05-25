@@ -1,33 +1,29 @@
 using UnityEngine;
 using System.Collections;
-using UnityEngine.SceneManagement;  // Para poder teletransportar entre escenas
+using UnityEngine.SceneManagement;
 
-// Script para abrir puertas (pueden necesitar llave o no) y, opcionalmente, hacer teletransporte.
-// Ahora también muestra un mensaje visible para el jugador si le falta la llave (HUD rápido con OnGUI).
+// Estrategia para abrir puertas que pueden requerir llave, mostrar mensaje o activar teletransporte
 public class DoorInteractionStrategy : MonoBehaviour, IStrategy
 {
-    public Transform doorPivot;             // Punto donde gira la puerta (bisagra)
-    public float openAngle = 90f;           // Ángulo de apertura
-    public float openSpeed = 2f;            // Velocidad a la que se abre
+    public Transform doorPivot;
+    public float openAngle = 90f;
+    public float openSpeed = 2f;
 
     [Header("Spawner de objetos (Factory)")]
-    public ObjectSpawner objectSpawner;     // Si queremos spawnear gusanos o cualquier cosa cuando abrimos
-
+    public ObjectSpawner objectSpawner;
     private bool hasSpawnedObjects = false;
 
     [Header("Llave para puerta")]
-    public bool requiresKey = false;        // Actívalo si la puerta necesita llave
-    public KeyData requiredKey;             // La llave que abre esta puerta
-    [TextArea]
-    public string lockedMessage = "La puerta está cerrada. Necesitas la llave.";  // Mensaje que mostramos si falta la llave
-    public float messageDuration = 2f;      // Tiempo que dejamos visible ese mensaje
-
-    private bool isShowing = false;         // Para controlar si estamos mostrando el mensaje ahora
+    public bool requiresKey = false;
+    public KeyData requiredKey;
+    [TextArea] public string lockedMessage = "La puerta está cerrada. Necesitas la llave.";
+    public float messageDuration = 2f;
+    private bool isShowing = false;
 
     [Header("Opcional - Teletransporte")]
-    public bool enableTeleport = false;     // Activar si queremos teletransportar
-    public string nextSceneName;            // Nombre de la escena a la que saltamos
-    public float teleportDelay = 2f;        // Cuánto esperamos antes de teletransportar (para dar tiempo a la animación)
+    public bool enableTeleport = false;
+    public string nextSceneName;
+    public float teleportDelay = 2f;
 
     private bool isOpen = false;
     private bool isAnimating = false;
@@ -35,40 +31,25 @@ public class DoorInteractionStrategy : MonoBehaviour, IStrategy
 
     public void Execute(GameObject interactor)
     {
-        Debug.Log("DoorInteraction: Ejecutando acción...");
-
-        // Si requiere llave, comprobamos el inventario del jugador
         if (requiresKey)
         {
-            if (requiredKey == null)
-            {
-                Debug.LogWarning("La puerta está configurada para requerir llave pero no se ha asignado ningún KeyData.");
-                return;
-            }
+            if (requiredKey == null) return;
 
             var inventory = interactor.GetComponent<PlayerInventory>();
-            if (inventory == null)
-            {
-                Debug.LogError("No se encontró PlayerInventory en: " + interactor.name);
-                return;
-            }
+            if (inventory == null) return;
 
-            // Si NO tenemos la llave => mostramos mensaje informativo al jugador
             if (!inventory.HasKey(requiredKey))
             {
-                Debug.Log("La puerta está cerrada: falta la llave.");
                 isShowing = true;
                 StartCoroutine(HideMessageAfterDelay());
                 return;
             }
         }
 
-        // Si llegamos aquí es porque no necesita llave o la tenemos ✅
         if (!isAnimating)
             StartCoroutine(RotateDoor(interactor));
     }
 
-    // Animamos la apertura (o cierre) de la puerta. Esto esta por mejorar, es bastante cutre.
     private IEnumerator RotateDoor(GameObject interactor)
     {
         isAnimating = true;
@@ -87,54 +68,43 @@ public class DoorInteractionStrategy : MonoBehaviour, IStrategy
         isOpen = !isOpen;
         isAnimating = false;
 
-        // Si hay un spawner y aún no hemos spawneado nada, lo lanzamos ahora
         if (objectSpawner != null && !hasSpawnedObjects)
         {
             objectSpawner.TrySpawnObjects();
             hasSpawnedObjects = true;
         }
 
-        // Teletransporte opcional (solo si está activado)
         if (enableTeleport && !hasTeleported)
         {
             hasTeleported = true;
-            Debug.Log("Activando teletransporte...");
-
             yield return new WaitForSeconds(teleportDelay);
 
             if (!string.IsNullOrEmpty(nextSceneName))
-            {
                 SceneManager.LoadScene(nextSceneName);
-            }
-            else
-            {
-                Debug.LogWarning("No se ha definido el nombre de la escena de destino.");
-            }
         }
     }
 
-    // Oculta el mensaje después de unos segundos
     private IEnumerator HideMessageAfterDelay()
     {
         yield return new WaitForSeconds(messageDuration);
         isShowing = false;
     }
 
-    // Dibujamos el mensaje en pantalla con OnGUI (HUD rápido)
     private void OnGUI()
     {
-        if (isShowing)
-        {
-            GUIStyle style = new GUIStyle(GUI.skin.label);
-            style.fontSize = 40;
-            style.normal.textColor = Color.yellow;  // Amarillo para que destaque
-            style.alignment = TextAnchor.MiddleCenter;
+        if (!isShowing) return;
 
-            GUI.Label(
-                new Rect(Screen.width / 2 - 400, Screen.height / 2, 800, 200),
-                lockedMessage,
-                style
-            );
-        }
+        GUIStyle style = new GUIStyle(GUI.skin.label)
+        {
+            fontSize = 40,
+            normal = { textColor = Color.yellow },
+            alignment = TextAnchor.MiddleCenter
+        };
+
+        GUI.Label(
+            new Rect(Screen.width / 2 - 400, Screen.height / 2, 800, 200),
+            lockedMessage,
+            style
+        );
     }
 }

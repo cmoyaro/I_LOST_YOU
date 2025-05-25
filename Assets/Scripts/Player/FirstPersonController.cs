@@ -2,91 +2,77 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-// Script para controlar al jugador en primera persona
-// Incluye movimiento, rotación con el ratón, agacharse, gravedad y linterna
 public class FirstPersonController : MonoBehaviour
 {
     [Header("Movimiento")]
-    public float walkSpeed = 4f;            // Velocidad normal
-    public float runSpeed = 7f;             // Velocidad al correr
-    public float crouchSpeed = 2f;          // Velocidad agachado
-    public float mouseSensitivity = 2f;     // Sensibilidad del ratón
-    public Transform playerCamera;          // Referencia a la cámara
+    public float walkSpeed = 4f;
+    public float runSpeed = 7f;
+    public float crouchSpeed = 2f;
+    public float mouseSensitivity = 2f;
+    public Transform playerCamera;
 
     [Header("Agacharse - Cámara")]
-    public float crouchCameraHeight = 1.0f; // Altura de la cámara al agacharse
-    public float crouchLerpSpeed = 5f;      // Suavizado del cambio de altura de cámara
+    public float crouchCameraHeight = 1.0f;
+    public float crouchLerpSpeed = 5f;
 
     [Header("Linterna")]
-    public KeyCode flashlightKey = KeyCode.F;  // Tecla para encender/apagar
+    public KeyCode flashlightKey = KeyCode.F;
     private bool canUseFlashlight = true;
 
-
-    private GameObject flashlightPlayer;       // El objeto raíz (FlashLightPlayer)
-    private GameObject onVisual;               // El hijo ON (lo que se ve encendido)
-    private GameObject offVisual;              // El hijo OFF (lo que se ve apagado)
-    private Light flashlightLight;             // La luz real (Spot Light)
+    private GameObject flashlightPlayer;
+    private GameObject onVisual;
+    private GameObject offVisual;
+    private Light flashlightLight;
 
     [Header("Audio")]
-    public AudioSource footstepSource;          // Fuente para reproducir pasos
-    public AudioClip leftFootstepClip;          // Sonido para pie izquierdo
-    public AudioClip rightFootstepClip;         // Sonido para pie derecho
-    public float walkStepInterval = 0.5f;       // Intervalo andando normal
-    public float runStepInterval = 0.3f;        // Intervalo corriendo
+    public AudioSource footstepSource;
+    public AudioClip leftFootstepClip;
+    public AudioClip rightFootstepClip;
+    public float walkStepInterval = 0.5f;
+    public float runStepInterval = 0.3f;
 
-    private float stepTimer = 0f;               // Temporizador entre pasos
-    private bool isLeftStep = true;             // Alternar entre pie izquierdo y derecho
+    private float stepTimer = 0f;
+    private bool isLeftStep = true;
 
-    [Header("Gravedad")] //Este campo por el momento no está terminado
-    public float gravity = -9.81f;               // Valor de la gravedad
-    public float groundCheckDistance = 0.4f;     // Distancia del check de suelo
-    public LayerMask groundMask;                 // Qué se considera suelo
-    public Transform groundCheck;                // Objeto que marca desde dónde se hace el check
+    [Header("Gravedad")]
+    public float gravity = -9.81f;
+    public float groundCheckDistance = 0.4f;
+    public LayerMask groundMask;
+    public Transform groundCheck;
     [HideInInspector] public bool isInputLocked = false;
 
+    private CharacterController controller;
+    private float currentSpeed;
+    private bool isCrouching = false;
 
-
-    // Componentes y controladores internos
-    private CharacterController controller;      // Componente que gestiona colisiones y movimiento
-    private float currentSpeed;                  // Velocidad actual (según estado)
-    private bool isCrouching = false;            // ¿Está agachado?
-
-    // Ratón y rotación
     private float xRotation = 0f;
 
+    private Vector3 velocity;
+    private bool isGrounded;
 
-    // Gravedad y suelo
-    private Vector3 velocity;                    // Velocidad en el eje Y
-    private bool isGrounded;                     // ¿Está tocando suelo?
-
-
-    // Valores originales del CharacterController
     private Vector3 originalCenter;
     private float originalHeight;
 
-    // Posiciones de cámara en estado normal y agachado
     private Vector3 standingCamLocalPos;
     private Vector3 crouchingCamLocalPos;
-
+    // Inicializa cámara, gravedad y linterna
     void Start()
     {
         controller = GetComponent<CharacterController>();
-        Cursor.lockState = CursorLockMode.Locked; // Oculta y bloquea el cursor en pantalla
+        Cursor.lockState = CursorLockMode.Locked;
 
         originalCenter = controller.center;
         originalHeight = controller.height;
 
-        // Guardamos posición de cámara de pie
         standingCamLocalPos = playerCamera.localPosition;
 
-        // Calculamos la posición que tendrá la cámara agachada
         crouchingCamLocalPos = new Vector3(
             standingCamLocalPos.x,
             crouchCameraHeight,
             standingCamLocalPos.z
         );
     }
-
+    // Control general del jugador (movimiento, cámara y linterna)
     void Update()
     {
         if (!isInputLocked)
@@ -94,16 +80,15 @@ public class FirstPersonController : MonoBehaviour
             mouseCamera();
             movement();
         }
+
         hasGravity();
+
         if (Input.GetKeyDown(flashlightKey) && flashlightPlayer != null && canUseFlashlight)
         {
             toogleFlashlight();
         }
-
-
-
     }
-    // Método para asignar la linterna recogida
+    // Asigna el objeto linterna al recogerlo
     public void SetFlashlight(GameObject flashlightObject)
     {
         flashlightPlayer = flashlightObject;
@@ -111,84 +96,50 @@ public class FirstPersonController : MonoBehaviour
         offVisual = flashlightPlayer.transform.Find("OFF")?.gameObject;
         flashlightLight = onVisual.GetComponentInChildren<Light>();
 
-        Debug.Log("SetFlashlight llamado:");
-        Debug.Log("  ON: " + (onVisual != null));
-        Debug.Log("  OFF: " + (offVisual != null));
-        Debug.Log("  Light encontrado: " + (flashlightLight != null));
-
-        // Desactivar la luz al recogerla
         if (flashlightLight != null)
-        {
             flashlightLight.enabled = false;
-        }
 
-        // Activar/desactivar visuals para que empiece apagada
         if (onVisual != null) onVisual.SetActive(false);
         if (offVisual != null) offVisual.SetActive(true);
     }
 
     public void toogleFlashlight()
     {
-
-        // -------------------------
-        // Linterna
-        // -------------------------
-        Debug.Log("Pulsada F. Linterna activa: " + flashlightLight.enabled);
-
         bool isOn = flashlightLight.enabled;
-
         flashlightLight.enabled = !isOn;
 
         if (onVisual != null) onVisual.SetActive(!isOn);
         if (offVisual != null) offVisual.SetActive(isOn);
-
     }
-
+    // Control de cámara con ratón
     public void mouseCamera()
-
     {
-        // -------------------------
-        // Rotación con el ratón
-        // -------------------------
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
 
         xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f); // Para no girar la cabeza del revés, es decir, hacer el Reagan
+        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
         playerCamera.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-        transform.Rotate(Vector3.up * mouseX); // Rotamos el cuerpo del jugador
+        transform.Rotate(Vector3.up * mouseX);
     }
 
     public void hasGravity()
     {
-        // -------------------------
-        // Detección de suelo
-        // -------------------------
         isGrounded = Physics.CheckSphere(groundCheck.position, groundCheckDistance, groundMask);
 
         if (isGrounded && velocity.y < 0)
-        {
-            // Pequeño empuje hacia abajo para que no flote
             velocity.y = -2f;
-        }
 
-        // -------------------------
-        // Aplicar gravedad
-        // -------------------------
         velocity.y += gravity * Time.deltaTime;
         controller.Move(velocity * Time.deltaTime);
     }
-
+    // Movimiento, sonido de pasos y agacharse
     public void movement()
     {
-        // -------------------------
-        // Movimiento con teclado
-        // -------------------------
-        float x = Input.GetAxis("Horizontal"); // A/D
-        float z = Input.GetAxis("Vertical");   // W/S
+        float x = Input.GetAxis("Horizontal");
+        float z = Input.GetAxis("Vertical");
         Vector3 move = transform.right * x + transform.forward * z;
 
-        // Velocidad según si va andando, corriendo o agachado
         if (Input.GetKey(KeyCode.LeftControl))
             currentSpeed = crouchSpeed;
         else if (Input.GetKey(KeyCode.LeftShift))
@@ -196,11 +147,8 @@ public class FirstPersonController : MonoBehaviour
         else
             currentSpeed = walkSpeed;
 
-        // Aplicamos el movimiento
         controller.Move(move * currentSpeed * Time.deltaTime);
 
-        // Sonido de pasos 
-        // -------------------------
         bool isMoving = Input.GetKey(KeyCode.W) || Input.GetKey(KeyCode.A) ||
                         Input.GetKey(KeyCode.S) || Input.GetKey(KeyCode.D);
 
@@ -218,7 +166,7 @@ public class FirstPersonController : MonoBehaviour
                     if (clipToPlay != null)
                     {
                         footstepSource.PlayOneShot(clipToPlay);
-                        isLeftStep = !isLeftStep;  // Alternamos pie
+                        isLeftStep = !isLeftStep;
                     }
                 }
                 stepTimer = currentStepInterval;
@@ -226,21 +174,14 @@ public class FirstPersonController : MonoBehaviour
         }
         else
         {
-            // Reiniciamos el temporizador cuando dejamos de andar
             stepTimer = 0f;
         }
 
-        // -------------------------
-        // Agacharse
-        // -------------------------
         if (Input.GetKeyDown(KeyCode.LeftControl))
         {
-            // Ajustamos la altura y el centro del CharacterController
             float heightDiff = originalHeight - 1f;
             controller.height = 1f;
             controller.center = new Vector3(0, 0.5f, 0);
-
-            // Ajustamos la posición del jugador para que no flote
             transform.position -= new Vector3(0, heightDiff / 2f, 0);
             isCrouching = true;
         }
@@ -253,9 +194,6 @@ public class FirstPersonController : MonoBehaviour
             isCrouching = false;
         }
 
-        // -------------------------
-        // Suavizado de cámara al agacharse
-        // -------------------------
         Vector3 targetCamPos = isCrouching ? crouchingCamLocalPos : standingCamLocalPos;
         playerCamera.localPosition = Vector3.Lerp(
             playerCamera.localPosition,
@@ -264,13 +202,11 @@ public class FirstPersonController : MonoBehaviour
         );
     }
 
-    // Comprueba si la linterna está encendida
     public bool IsFlashlightOn()
     {
         return flashlightLight != null && flashlightLight.enabled;
     }
 
-    // Apaga la linterna de forma "normal"
     public void TurnOffFlashlight()
     {
         if (flashlightLight != null)
@@ -279,26 +215,20 @@ public class FirstPersonController : MonoBehaviour
         if (onVisual != null) onVisual.SetActive(false);
         if (offVisual != null) offVisual.SetActive(true);
     }
-
-    // Este método se llama desde el enemigo cuando ve al jugador
-    // Hace que la linterna parpadee un poco y luego se apague del todo
+    // Apaga la linterna tras un parpadeo forzado (efecto paranormal)
     public void ForceFlashlightShutdown(float duration = 1.5f, float blinkInterval = 0.1f)
     {
-        // Si ya está apagada, no hacemos nada
         if (!IsFlashlightOn()) return;
 
-        // Iniciamos el parpadeo antes del apagón
         StartCoroutine(BlinkThenOff(duration, blinkInterval));
     }
 
-    // Corrutina que alterna la luz encendida y apagada durante X segundos
-    // y al final la deja apagada del todo
     private IEnumerator BlinkThenOff(float duration, float interval)
     {
         if (flashlightLight == null) yield break;
 
         float timer = 0f;
-        bool originalState = flashlightLight.enabled; // Guardamos si estaba encendida
+        bool originalState = flashlightLight.enabled;
 
         while (timer < duration)
         {
@@ -312,35 +242,30 @@ public class FirstPersonController : MonoBehaviour
             timer += interval;
         }
 
-        // En lugar de apagarla, la dejamos como estaba
         flashlightLight.enabled = originalState;
         if (onVisual != null) onVisual.SetActive(originalState);
         if (offVisual != null) offVisual.SetActive(!originalState);
     }
 
-
-    // Desactiva temporalmente el uso de la linterna (por ejemplo, tras un apagón sobrenatural)
-
-    // Corrutina que impide encender la linterna durante un tiempo determinado
     private IEnumerator FlashlightCooldown(float seconds)
     {
-        canUseFlashlight = false; // Bloqueamos el uso de la linterna
-        yield return new WaitForSeconds(seconds); // Esperamos el tiempo indicado
-        canUseFlashlight = true; // Volvemos a permitir su uso
+        canUseFlashlight = false;
+        yield return new WaitForSeconds(seconds);
+        canUseFlashlight = true;
     }
-    // Desactiva indefinidamente el uso de la linterna
+
     public void DisableFlashlight()
     {
         canUseFlashlight = false;
     }
-    // Activa el uso de la linterna de nuevo
+
     public void EnableFlashlight()
     {
         canUseFlashlight = true;
     }
 
-
-
-
-
+    public bool HasFlashlight()
+    {
+        return flashlightPlayer != null;
+    }
 }

@@ -2,13 +2,14 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using TMPro;
 
+// Controla la escena de introducción: muestra texto inicial y permite continuar al pulsar una tecla
 public class IntroSceneManager : MonoBehaviour
 {
     public TextMeshProUGUI introText;
     public TextMeshProUGUI continueMessage;
     public KeyCode continueKey = KeyCode.Space;
     public string nextSceneName = "Exterior";
-    public float delayToShowMessage = 3f; // segundos
+    public float delayToShowMessage = 3f;
 
     private void Start()
     {
@@ -16,9 +17,9 @@ public class IntroSceneManager : MonoBehaviour
             introText.gameObject.SetActive(true);
 
         if (continueMessage != null)
-            continueMessage.gameObject.SetActive(false); // Ocultar al principio
+            continueMessage.gameObject.SetActive(false);
 
-        Invoke("ShowContinueMessage", delayToShowMessage);
+        Invoke(nameof(ShowContinueMessage), delayToShowMessage);
     }
 
     private void ShowContinueMessage()
@@ -31,7 +32,6 @@ public class IntroSceneManager : MonoBehaviour
     {
         if (Input.GetKeyDown(continueKey))
         {
-            Debug.Log("Cargando la escena: " + nextSceneName);
             SceneManager.LoadScene(nextSceneName);
         }
     }

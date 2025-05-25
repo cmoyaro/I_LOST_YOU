@@ -1,15 +1,22 @@
 using UnityEngine;
 
+// Asigna una pista musical y un volumen concreto al iniciar la escena
 public class SceneMusicSetter : MonoBehaviour
 {
-    [Header("Asignar música para esta escena")]
-    public AudioClip sceneMusicClip;  // Ponemos la canción que queramos
+    [Header("Música de esta escena")]
+    public AudioClip sceneMusicClip;
+
+    [Range(0f, 1f)]
+    public float volume = 1f;
 
     void Start()
     {
-        if (MusicManager.Instance != null && sceneMusicClip != null)
+        if (MusicManager.Instance != null)
         {
-            MusicManager.Instance.ChangeTrack(sceneMusicClip);
+            if (sceneMusicClip != null)
+                MusicManager.Instance.ChangeTrack(sceneMusicClip);
+
+            MusicManager.Instance.SetVolume(volume);
         }
     }
 }

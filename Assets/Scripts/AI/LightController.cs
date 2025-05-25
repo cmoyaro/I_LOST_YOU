@@ -1,9 +1,7 @@
 using UnityEngine;
 using System.Collections;
 
-
-// Este script se coloca en cada luz que queramos controlar.
-// Permite encender, apagar, cambiar intensidad y hacer titileo suave.
+// Controlador para luces individuales: encendido, apagado, cambio de intensidad y efecto de titileo
 public class LightController : MonoBehaviour
 {
     private Light myLight;
@@ -13,24 +11,18 @@ public class LightController : MonoBehaviour
     void Awake()
     {
         myLight = GetComponent<Light>();
-        if (myLight == null)
-        {
-            Debug.LogWarning("No se encontró componente Light en " + gameObject.name);
-        }
-        else
-        {
-            baseIntensity = myLight.intensity; // Guardamos la intensidad original
-        }
+        if (myLight != null)
+            baseIntensity = myLight.intensity;
     }
-    // Enciende o apaga la luz
 
+    // Enciende o apaga la luz
     public void SetLight(bool state)
     {
         if (myLight != null)
             myLight.enabled = state;
     }
 
-    // Cambia la intensidad de la luz
+    // Cambia la intensidad de la luz y guarda ese valor como base
     public void SetIntensity(float intensity)
     {
         if (myLight != null)
@@ -40,14 +32,14 @@ public class LightController : MonoBehaviour
         }
     }
 
-    // Inicia el efecto titileo tipo vela
+    // Inicia el efecto de titileo (tipo vela)
     public void StartFlicker(float flickerSpeed = 0.05f, float flickerAmount = 0.2f)
     {
         if (flickerCoroutine == null)
             flickerCoroutine = StartCoroutine(Flicker(flickerSpeed, flickerAmount));
     }
 
-    // Detiene el titileo y deja la luz estable
+    // Detiene el titileo y devuelve la luz a su intensidad base
     public void StopFlicker()
     {
         if (flickerCoroutine != null)
@@ -58,7 +50,7 @@ public class LightController : MonoBehaviour
         }
     }
 
-    // Efecto de titileo suave, simulando llama de vela
+    // Corrutina que aplica pequeñas variaciones a la intensidad, simulando una llama
     private IEnumerator Flicker(float speed, float amount)
     {
         while (true)
