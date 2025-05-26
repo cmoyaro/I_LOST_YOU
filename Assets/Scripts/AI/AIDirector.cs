@@ -89,7 +89,7 @@ public class AIDirector : MonoBehaviour
 
         if (Time.time - lastParanormalEventTime >= paranormalCooldown)
         {
-            if (!isParanormalEventActive && Random.value < 0.08f)
+            if (!isParanormalEventActive && Random.value < 0.05f)
             {
                 ForceFlashlightGlitchAndAffectArea(8f, 1.8f, 0.07f);
                 lastParanormalEventTime = Time.time;
